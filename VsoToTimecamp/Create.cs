@@ -21,7 +21,7 @@ namespace VsoToTimecamp
     {
         [PublicAPI]
         [FunctionName(nameof(Create))]
-        public static async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "create/{token}")]HttpRequest req, string token, TraceWriter log)
+        public static async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "create/{token}/{projectId}")]HttpRequest req, string token, string projectId, TraceWriter log)
         {
             log.Info("C# HTTP trigger function processed a request.");
 
@@ -32,7 +32,7 @@ namespace VsoToTimecamp
 
             try
             {
-                var response = await TimecampClient.CreateAsync(token, data.Message.Text, data.Id).ConfigureAwait(false);
+                var response = await TimecampClient.CreateAsync(token, projectId, data.Message.Text, data.Id).ConfigureAwait(false);
                 return new OkObjectResult(response);
             }
             catch (Exception ex)
@@ -48,13 +48,14 @@ namespace VsoToTimecamp
             type.Equals("Bug", StringComparison.InvariantCultureIgnoreCase) ||
             type.Equals("Task", StringComparison.InvariantCultureIgnoreCase);
 
-        public static async Task<dynamic> CreateAsync(string token, string name, string vsoId)
+        public static async Task<dynamic> CreateAsync(string token, string projectId, string name, string vsoId)
         {
             var uri = "tasks/api_token/" + token;
             var payload = new MultipartFormDataContent
             {
                 { new StringContent(name), "name" },
-                { new StringContent(vsoId), "external_task_id" }
+                { new StringContent(vsoId), "external_task_id" },
+                { new StringContent(projectId), "parent_id" }
             };
             var response = await PostAsync(uri, payload).ConfigureAwait(false);
             var newTask = JsonConvert.DeserializeObject<Dictionary<string, dynamic>>(response);
